@@ -1,0 +1,142 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #66bb6a 0%, #4caf50 100%) !important;
+  padding: 20px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+mat-card {
+  padding: 20px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+  border-radius: 16px !important;
+  background-color: white !important;
+  color: black !important;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.logo-icon {
+  font-size: 48px !important;
+  width: 48px !important;
+  height: 48px !important;
+  color: #4caf50 !important;
+}
+
+mat-card-title {
+  color: #2e7d32 !important;
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+}
+
+mat-card-subtitle {
+  color: #666 !important;
+  margin: 0 !important;
+}
+
+.form-field {
+  margin-bottom: 16px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.form-actions {
+  margin-top: 24px;
+}
+
+button[mat-raised-button] {
+  height: 48px !important;
+  font-size: 16px !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+}
+
+.card-footer {
+  text-align: center;
+  width: 100%;
+  margin-top: 16px;
+}
+
+.card-footer p {
+  color: #666 !important;
+}
+
+.register-link {
+  color: #4caf50 !important;
+  text-decoration: none;
+  font-weight: 500;
+  
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Forzar estilos en los campos de input
+::ng-deep .mat-mdc-form-field {
+  .mat-mdc-text-field-wrapper {
+    background-color: white !important;
+  }
+  
+  .mat-mdc-form-field-label {
+    color: #666 !important;
+  }
+  
+  .mat-mdc-input-element {
+    color: black !important;
+    background-color: white !important;
+  }
+}
+
+::ng-deep .mat-mdc-outlined-form-field {
+  .mdc-notched-outline__leading,
+  .mdc-notched-outline__notch,
+  .mdc-notched-outline__trailing {
+    border-color: #ddd !important;
+  }
+}
+
+// Responsive
+@media (max-width: 480px) {
+  .login-container {
+    padding: 10px;
+  }
+  
+  mat-card {
+    padding: 16px !important;
+  }
+  
+  .logo-icon {
+    font-size: 36px !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+  
+  mat-card-title {
+    font-size: 20px !important;
+  }
+}
+
+// Loading animation
+button[disabled] mat-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
