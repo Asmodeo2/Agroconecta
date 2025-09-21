@@ -62,7 +62,7 @@ export class LoginComponent implements OnInit {
       const credentials: LoginRequest = this.loginForm.value;
 
       // Verificar credenciales directamente
-      if (credentials.email === 'admin@agroconecta.com' && credentials.password === '123456') {
+      if (credentials.email === 'franco_grados@usmp.pe' && credentials.password === '123456') {
         // Login exitoso
         setTimeout(() => {
           this.loading = false;
