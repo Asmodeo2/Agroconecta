@@ -1,0 +1,421 @@
+<div class="orders-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Gestión de Pedidos</h1>
+      <p class="page-subtitle">Administra los pedidos de tus clientes</p>
+    </div>
+    <button class="btn btn-primary" (click)="openModal()">
+      <i class="fas fa-plus"></i> Nuevo Pedido
+    </button>
+  </div>
+
+  <!-- Resumen de pedidos -->
+  <div class="summary-cards" *ngIf="summary">
+    <div class="summary-card">
+      <div class="summary-icon bg-primary">
+        <i class="fas fa-list-alt"></i>
+      </div>
+      <div class="summary-content">
+        <h3>{{ summary.totalOrders }}</h3>
+        <p>Total Pedidos</p>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon bg-warning">
+        <i class="fas fa-clock"></i>
+      </div>
+      <div class="summary-content">
+        <h3>{{ summary.pendingOrders }}</h3>
+        <p>Pendientes</p>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon bg-info">
+        <i class="fas fa-truck"></i>
+      </div>
+      <div class="summary-content">
+        <h3>{{ summary.processingOrders }}</h3>
+        <p>En Proceso</p>
+      </div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-icon bg-success">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="summary-content">
+        <h3>{{ summary.deliveredOrders }}</h3>
+        <p>Entregados</p>
+      </div>
+    </div>
+    <div class="summary-card revenue">
+      <div class="summary-icon bg-success">
+        <i class="fas fa-dollar-sign"></i>
+      </div>
+      <div class="summary-content">
+        <h3>{{ formatPrice(summary.totalRevenue) }}</h3>
+        <p>Ingresos Totales</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros y búsqueda -->
+  <div class="filters-section">
+    <div class="search-box">
+      <div class="input-group">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Buscar por número de pedido..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearch()">
+        <span class="input-group-text">
+          <i class="fas fa-search"></i>
+        </span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <select
+        class="form-select"
+        [(ngModel)]="selectedStatus"
+        (change)="onFilterChange()">
+        <option value="">Todos los estados</option>
+        <option *ngFor="let status of orderStatuses" [value]="status">{{ getStatusText(status) }}</option>
+      </select>
+
+      <select
+        class="form-select"
+        [(ngModel)]="selectedZone"
+        (change)="onFilterChange()">
+        <option value="">Todas las zonas</option>
+        <option *ngFor="let zone of availableZones" [value]="zone">{{ zone }}</option>
+      </select>
+
+      <div class="date-filters">
+        <input
+          type="date"
+          class="form-control"
+          placeholder="Fecha inicio"
+          [(ngModel)]="startDate"
+          (change)="onFilterChange()">
+        <input
+          type="date"
+          class="form-control"
+          placeholder="Fecha fin"
+          [(ngModel)]="endDate"
+          (change)="onFilterChange()">
+      </div>
+
+      <button class="btn btn-outline-secondary" (click)="clearFilters()">
+        <i class="fas fa-times"></i> Limpiar
+      </button>
+    </div>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="alert alert-danger" role="alert">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+    <p>Cargando pedidos...</p>
+  </div>
+
+  <!-- Tabla de pedidos -->
+  <div class="table-container" *ngIf="!loading">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Pedido</th>
+          <th>Cliente</th>
+          <th>Estado</th>
+          <th>Zona Entrega</th>
+          <th>Fecha</th>
+          <th>Total</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let order of paginatedOrders">
+          <td>
+            <div class="order-info">
+              <h6 class="mb-0">{{ order.numeroPedido }}</h6>
+              <small class="text-muted">{{ order.detalles.length }} productos</small>
+            </div>
+          </td>
+          <td>
+            <span class="client-name">{{ getClientName(order.clienteId) }}</span>
+          </td>
+          <td>
+            <span [class]="'status-badge ' + getStatusClass(order.estado)">
+              {{ getStatusText(order.estado) }}
+            </span>
+          </td>
+          <td>{{ order.zonaEntrega }}</td>
+          <td>
+            <div class="date-info">
+              <div>{{ formatDate(order.fechaPedido) }}</div>
+              <small class="text-muted" *ngIf="order.fechaEntregaProgramada">
+                Entrega: {{ formatDate(order.fechaEntregaProgramada) }}
+              </small>
+            </div>
+          </td>
+          <td>
+            <span class="order-total">{{ formatPrice(order.montoTotal) }}</span>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button
+                class="btn btn-sm btn-outline-info"
+                (click)="openStatusModal(order)"
+                title="Cambiar estado">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button
+                class="btn btn-sm btn-outline-primary"
+                (click)="openModal(order)"
+                title="Ver/Editar"
+                [disabled]="order.estado === 'ENTREGADO' || order.estado === 'CANCELADO'">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button
+                class="btn btn-sm btn-outline-danger"
+                (click)="confirmDelete(order)"
+                title="Cancelar"
+                [disabled]="order.estado === 'ENTREGADO' || order.estado === 'CANCELADO'">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Estado vacío -->
+    <div *ngIf="filteredOrders.length === 0" class="empty-state">
+      <i class="fas fa-clipboard-list fa-3x text-muted"></i>
+      <h4>No hay pedidos</h4>
+      <p class="text-muted">
+        {{ searchTerm || selectedStatus || selectedZone ? 'No se encontraron pedidos con los filtros aplicados' : 'Aún no tienes pedidos registrados' }}
+      </p>
+      <button *ngIf="!searchTerm && !selectedStatus && !selectedZone" class="btn btn-primary" (click)="openModal()">
+        Crear primer pedido
+      </button>
+    </div>
+  </div>
+
+  <!-- Paginación -->
+  <nav *ngIf="totalPages > 1" aria-label="Paginación de pedidos">
+    <ul class="pagination justify-content-center">
+      <li class="page-item" [class.disabled]="currentPage === 1">
+        <button class="page-link" (click)="changePage(currentPage - 1)">Anterior</button>
+      </li>
+      <li *ngFor="let page of [].constructor(totalPages); let i = index"
+          class="page-item"
+          [class.active]="currentPage === i + 1">
+        <button class="page-link" (click)="changePage(i + 1)">{{ i + 1 }}</button>
+      </li>
+      <li class="page-item" [class.disabled]="currentPage === totalPages">
+        <button class="page-link" (click)="changePage(currentPage + 1)">Siguiente</button>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<!-- Modal para crear/editar pedido -->
+<div class="modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          {{ editingOrder ? 'Ver/Editar Pedido: ' + editingOrder.numeroPedido : 'Nuevo Pedido' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeModal()"></button>
+      </div>
+      <form [formGroup]="orderForm" (ngSubmit)="saveOrder()">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label" for="clienteId">Cliente *</label>
+                <select
+                  class="form-select"
+                  id="clienteId"
+                  formControlName="clienteId"
+                  [class.is-invalid]="orderForm.get('clienteId')?.invalid && orderForm.get('clienteId')?.touched">
+                  <option value="">Seleccionar cliente</option>
+                  <option *ngFor="let client of clients" [value]="client.id">{{ client.nombre }}</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="orderForm.get('clienteId')?.invalid && orderForm.get('clienteId')?.touched">
+                  Selecciona un cliente
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label" for="zonaEntrega">Zona de Entrega *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="zonaEntrega"
+                  formControlName="zonaEntrega"
+                  [class.is-invalid]="orderForm.get('zonaEntrega')?.invalid && orderForm.get('zonaEntrega')?.touched">
+                <div class="invalid-feedback" *ngIf="orderForm.get('zonaEntrega')?.invalid && orderForm.get('zonaEntrega')?.touched">
+                  La zona de entrega es requerida
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label" for="fechaEntregaProgramada">Fecha de Entrega</label>
+                <input
+                  type="date"
+                  class="form-control"
+                  id="fechaEntregaProgramada"
+                  formControlName="fechaEntregaProgramada">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label" for="observaciones">Observaciones</label>
+                <textarea
+                  class="form-control"
+                  id="observaciones"
+                  formControlName="observaciones"
+                  rows="2"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <hr>
+
+          <!-- Detalles del pedido -->
+          <div class="order-details">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6>Productos del Pedido</h6>
+              <button type="button" class="btn btn-sm btn-outline-primary" (click)="addDetailFormGroup()">
+                <i class="fas fa-plus"></i> Agregar Producto
+              </button>
+            </div>
+
+            <div class="details-list">
+              <div *ngFor="let detail of detallesFormArray.controls; let i = index" class="detail-row" [formGroupName]="i">
+                <div class="row align-items-end">
+                  <div class="col-md-4">
+                    <label class="form-label">Producto *</label>
+                    <select class="form-select" formControlName="productoId">
+                      <option value="">Seleccionar producto</option>
+                      <option *ngFor="let product of availableProducts" [value]="product.id">
+                        {{ product.nombre }} ({{ formatPrice(product.precio) }}/{{ product.unidadMedida }})
+                      </option>
+                    </select>
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">Cantidad *</label>
+                    <input type="number" class="form-control" formControlName="cantidad" min="1">
+                  </div>
+                  <div class="col-md-3">
+                    <label class="form-label">Precio Unit. *</label>
+                    <div class="input-group">
+                      <span class="input-group-text">S/</span>
+                      <input type="number" class="form-control" formControlName="precioUnitario" step="0.01" min="0">
+                    </div>
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label">Subtotal</label>
+                    <div class="subtotal-display">{{ formatPrice(calculateDetailSubtotal(i)) }}</div>
+                  </div>
+                  <div class="col-md-1">
+                    <button type="button" class="btn btn-sm btn-outline-danger" (click)="removeDetailFormGroup(i)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="order-total-section">
+              <div class="row">
+                <div class="col-md-8"></div>
+                <div class="col-md-4">
+                  <div class="total-display">
+                    <h5>Total: {{ formatPrice(calculateTotal()) }}</h5>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="orderForm.invalid || detallesFormArray.length === 0">
+            {{ editingOrder ? 'Actualizar' : 'Crear' }} Pedido
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para cambiar estado -->
+<div class="modal fade" [class.show]="showStatusModal" [style.display]="showStatusModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Cambiar Estado: {{ orderToUpdateStatus?.numeroPedido }}</h5>
+        <button type="button" class="btn-close" (click)="closeStatusModal()"></button>
+      </div>
+      <form [formGroup]="statusForm" (ngSubmit)="updateStatus()">
+        <div class="modal-body">
+          <div class="current-status mb-3">
+            <h6>Estado Actual: <span [class]="'status-badge ' + getStatusClass(orderToUpdateStatus?.estado!)">{{ getStatusText(orderToUpdateStatus?.estado!) }}</span></h6>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Nuevo Estado</label>
+            <select class="form-select" formControlName="estado">
+              <option *ngFor="let status of orderStatuses" [value]="status">{{ getStatusText(status) }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeStatusModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="statusForm.invalid">
+            Actualizar Estado
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación para cancelar -->
+<div class="modal fade" [class.show]="showDeleteModal" [style.display]="showDeleteModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Cancelación</h5>
+        <button type="button" class="btn-close" (click)="showDeleteModal = false"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas cancelar el pedido <strong>{{ orderToDelete?.numeroPedido }}</strong>?</p>
+        <p class="text-muted">Esta acción no se puede deshacer.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="showDeleteModal = false">No, mantener</button>
+        <button type="button" class="btn btn-danger" (click)="deleteOrder()">Sí, cancelar pedido</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay para modales -->
+<div class="modal-backdrop fade" [class.show]="showModal || showDeleteModal || showStatusModal" *ngIf="showModal || showDeleteModal || showStatusModal"></div>

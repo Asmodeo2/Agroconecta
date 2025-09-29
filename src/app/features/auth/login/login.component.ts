@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
-import { MatSnackBar } from '@angular/material/snack-bar';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 
 // Angular Material Imports
 import { MatCardModule } from '@angular/material/card';
@@ -13,7 +13,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 import { AuthService } from '../../../core/services/auth.service';
-import { LoginRequest } from '../../../shared/models/usuario.model';
+import { LoginRequest, ApiLoginResponse } from '../../../shared/models/usuario.model';
 
 @Component({
   selector: 'app-login',
@@ -27,7 +27,8 @@ import { LoginRequest } from '../../../shared/models/usuario.model';
     MatInputModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    MatSnackBarModule
   ],
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.scss']
@@ -61,23 +62,37 @@ export class LoginComponent implements OnInit {
       this.loading = true;
       const credentials: LoginRequest = this.loginForm.value;
 
-      // Verificar credenciales directamente
-      if (credentials.email === 'admin@agroconecta.com' && credentials.password === '123456') {
-        // Login exitoso
-        setTimeout(() => {
+      // Usar el servicio de autenticación real con tu backend
+      this.authService.login(credentials).subscribe({
+        next: (response: ApiLoginResponse) => {
           this.loading = false;
-          this.snackBar.open('Bienvenido a AgroConecta', 'Cerrar', { duration: 3000 });
-          this.router.navigate(['/dashboard']);
-        }, 1000);
-      } else {
-        // Login fallido
-        setTimeout(() => {
+          this.snackBar.open(`Bienvenido ${response.user.nombre}`, 'Cerrar', { duration: 3000 });
+          // Redirigir según el rol del usuario
+          this.redirectByRole(response.user.rol);
+        },
+        error: (error) => {
           this.loading = false;
-          this.snackBar.open('Email o contraseña incorrectos', 'Cerrar', { duration: 5000 });
-        }, 1000);
-      }
+          const errorMessage = error.error?.message || 'Email o contraseña incorrectos';
+          this.snackBar.open(errorMessage, 'Cerrar', { duration: 5000 });
+        }
+      });
     } else {
       this.markFormGroupTouched();
+    }
+  }
+
+  private redirectByRole(role: string): void {
+    switch (role) {
+      case 'ADMINISTRADOR':
+      case 'ADMIN':
+        this.router.navigate(['/admin/dashboard']);
+        break;
+      case 'PRODUCTOR':
+        this.router.navigate(['/productor/dashboard']);
+        break;
+      default:
+        this.router.navigate(['/dashboard']);
+        break;
     }
   }
 

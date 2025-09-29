@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/limps/OneDrive/Escritorio/agroConecta/agroconecta-backend/**)",
+      "Bash(npm install:*)",
+      "Bash(ngrok:*)",
+      "Bash(where ngrok)",
+      "Bash(mvn clean:*)",
+      "Bash(mvn:*)",
+      "Bash(timeout:*)",
+      "Bash(npm start)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

@@ -1,0 +1,309 @@
+<div class="clients-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Gestión de Clientes</h1>
+      <p class="page-subtitle">Administra los clientes de WhatsApp de AgroConecta</p>
+    </div>
+    <button class="btn btn-primary" (click)="openModal()">
+      <i class="fas fa-plus"></i> Nuevo Cliente
+    </button>
+  </div>
+
+  <!-- Filtros y búsqueda -->
+  <div class="filters-section">
+    <div class="search-box">
+      <div class="input-group">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Buscar por nombre o WhatsApp..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearch()">
+        <span class="input-group-text">
+          <i class="fas fa-search"></i>
+        </span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <select
+        class="form-select"
+        [(ngModel)]="selectedMercado"
+        (change)="onFilterChange()">
+        <option value="">Todos los mercados</option>
+        <option *ngFor="let mercado of mercados" [value]="mercado">{{ mercado }}</option>
+      </select>
+
+      <select
+        class="form-select"
+        [(ngModel)]="selectedTipo"
+        (change)="onFilterChange()">
+        <option value="">Todos los tipos</option>
+        <option *ngFor="let tipo of tiposCliente" [value]="tipo">{{ tipo }}</option>
+      </select>
+
+      <button class="btn btn-outline-secondary" (click)="clearFilters()">
+        <i class="fas fa-times"></i> Limpiar
+      </button>
+    </div>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="alert alert-danger" role="alert">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+    <p>Cargando clientes...</p>
+  </div>
+
+  <!-- Tabla de clientes -->
+  <div class="table-container" *ngIf="!loading">
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>Cliente</th>
+          <th>WhatsApp</th>
+          <th>Mercado/Zona</th>
+          <th>Tipo</th>
+          <th>Actividad</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let client of paginatedClients">
+          <td>
+            <div class="client-info">
+              <h6 class="mb-0">{{ client.nombre }}</h6>
+              <small class="text-muted" *ngIf="client.direccion">{{ client.direccion }}</small>
+            </div>
+          </td>
+          <td>
+            <span class="whatsapp-number">{{ formatWhatsApp(client.telefonoWhatsapp) }}</span>
+            <button
+              class="btn btn-sm btn-success ms-2"
+              (click)="recordInteraction(client)"
+              title="Registrar interacción">
+              <i class="fab fa-whatsapp"></i>
+            </button>
+          </td>
+          <td>{{ client.mercadoZona }}</td>
+          <td>
+            <span class="badge bg-info">{{ client.tipoCliente }}</span>
+          </td>
+          <td>
+            <div class="activity-info">
+              <span [class]="'activity-status ' + getActivityStatusClass(client)">
+                {{ getActivityStatus(client) }}
+              </span>
+              <small class="text-muted d-block" *ngIf="client.fechaUltimaInteraccion">
+                Última interacción: {{ client.fechaUltimaInteraccion | date:'dd/MM/yyyy' }}
+              </small>
+            </div>
+          </td>
+          <td>
+            <div class="form-check form-switch">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                [checked]="client.activo"
+                (change)="toggleClientStatus(client)">
+              <label class="form-check-label">
+                {{ client.activo ? 'Activo' : 'Inactivo' }}
+              </label>
+            </div>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button
+                class="btn btn-sm btn-outline-primary"
+                (click)="openModal(client)"
+                title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button
+                class="btn btn-sm btn-outline-danger"
+                (click)="confirmDelete(client)"
+                title="Eliminar">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Estado vacío -->
+    <div *ngIf="filteredClients.length === 0" class="empty-state">
+      <i class="fas fa-users fa-3x text-muted"></i>
+      <h4>No hay clientes</h4>
+      <p class="text-muted">
+        {{ searchTerm || selectedMercado || selectedTipo ? 'No se encontraron clientes con los filtros aplicados' : 'Aún no tienes clientes registrados' }}
+      </p>
+      <button *ngIf="!searchTerm && !selectedMercado && !selectedTipo" class="btn btn-primary" (click)="openModal()">
+        Agregar primer cliente
+      </button>
+    </div>
+  </div>
+
+  <!-- Paginación -->
+  <nav *ngIf="totalPages > 1" aria-label="Paginación de clientes">
+    <ul class="pagination justify-content-center">
+      <li class="page-item" [class.disabled]="currentPage === 1">
+        <button class="page-link" (click)="changePage(currentPage - 1)">Anterior</button>
+      </li>
+      <li *ngFor="let page of [].constructor(totalPages); let i = index"
+          class="page-item"
+          [class.active]="currentPage === i + 1">
+        <button class="page-link" (click)="changePage(i + 1)">{{ i + 1 }}</button>
+      </li>
+      <li class="page-item" [class.disabled]="currentPage === totalPages">
+        <button class="page-link" (click)="changePage(currentPage + 1)">Siguiente</button>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<!-- Modal para crear/editar cliente -->
+<div class="modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          {{ editingClient ? 'Editar Cliente' : 'Nuevo Cliente' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeModal()"></button>
+      </div>
+      <form [formGroup]="clientForm" (ngSubmit)="saveClient()">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label" for="nombre">Nombre *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="nombre"
+                  formControlName="nombre"
+                  [class.is-invalid]="clientForm.get('nombre')?.invalid && clientForm.get('nombre')?.touched">
+                <div class="invalid-feedback" *ngIf="clientForm.get('nombre')?.invalid && clientForm.get('nombre')?.touched">
+                  El nombre es requerido (mínimo 2 caracteres)
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label" for="telefonoWhatsapp">WhatsApp *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="telefonoWhatsapp"
+                  formControlName="telefonoWhatsapp"
+                  placeholder="+51987654321"
+                  [class.is-invalid]="clientForm.get('telefonoWhatsapp')?.invalid && clientForm.get('telefonoWhatsapp')?.touched">
+                <div class="invalid-feedback" *ngIf="clientForm.get('telefonoWhatsapp')?.invalid && clientForm.get('telefonoWhatsapp')?.touched">
+                  Número de WhatsApp inválido
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label" for="mercadoZona">Mercado/Zona *</label>
+                <select
+                  class="form-select"
+                  id="mercadoZona"
+                  formControlName="mercadoZona"
+                  [class.is-invalid]="clientForm.get('mercadoZona')?.invalid && clientForm.get('mercadoZona')?.touched">
+                  <option value="">Seleccionar mercado</option>
+                  <option *ngFor="let mercado of mercados" [value]="mercado">{{ mercado }}</option>
+                  <option value="OTRO">Otro (especificar en dirección)</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="clientForm.get('mercadoZona')?.invalid && clientForm.get('mercadoZona')?.touched">
+                  Selecciona un mercado
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label" for="tipoCliente">Tipo de Cliente *</label>
+                <select
+                  class="form-select"
+                  id="tipoCliente"
+                  formControlName="tipoCliente"
+                  [class.is-invalid]="clientForm.get('tipoCliente')?.invalid && clientForm.get('tipoCliente')?.touched">
+                  <option value="">Seleccionar tipo</option>
+                  <option value="MINORISTA">Minorista</option>
+                  <option value="MAYORISTA">Mayorista</option>
+                  <option value="RESTAURANTE">Restaurante</option>
+                  <option value="TIENDA">Tienda</option>
+                  <option value="PARTICULAR">Particular</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="clientForm.get('tipoCliente')?.invalid && clientForm.get('tipoCliente')?.touched">
+                  Selecciona un tipo de cliente
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="direccion">Dirección</label>
+            <textarea
+              class="form-control"
+              id="direccion"
+              formControlName="direccion"
+              rows="2"
+              placeholder="Dirección completa del cliente"></textarea>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="contactoAdicional">Contacto Adicional</label>
+            <input
+              type="text"
+              class="form-control"
+              id="contactoAdicional"
+              formControlName="contactoAdicional"
+              placeholder="Teléfono adicional, email, etc.">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="clientForm.invalid">
+            {{ editingClient ? 'Actualizar' : 'Crear' }} Cliente
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" [class.show]="showDeleteModal" [style.display]="showDeleteModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Eliminación</h5>
+        <button type="button" class="btn-close" (click)="showDeleteModal = false"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar el cliente <strong>{{ clientToDelete?.nombre }}</strong>?</p>
+        <p class="text-muted">Esta acción no se puede deshacer.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="showDeleteModal = false">Cancelar</button>
+        <button type="button" class="btn btn-danger" (click)="deleteClient()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay para modales -->
+<div class="modal-backdrop fade" [class.show]="showModal || showDeleteModal" *ngIf="showModal || showDeleteModal"></div>
