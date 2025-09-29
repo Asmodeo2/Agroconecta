@@ -1,0 +1,414 @@
+<div class="products-container">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1 class="page-title">Gestión de Productos</h1>
+      <p class="page-subtitle">Administra el inventario y catálogo de productos</p>
+    </div>
+    <button class="btn btn-primary" (click)="openModal()">
+      <i class="fas fa-plus"></i> Nuevo Producto
+    </button>
+  </div>
+
+  <!-- Estadísticas rápidas -->
+  <div class="stats-cards">
+    <div class="stat-card">
+      <div class="stat-icon bg-primary">
+        <i class="fas fa-boxes"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ products.length }}</h3>
+        <p>Total Productos</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon bg-success">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ availableProductsCount }}</h3>
+        <p>Disponibles</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon bg-warning">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ lowStockProductsCount }}</h3>
+        <p>Stock Bajo</p>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon bg-danger">
+        <i class="fas fa-times-circle"></i>
+      </div>
+      <div class="stat-content">
+        <h3>{{ outOfStockProductsCount }}</h3>
+        <p>Sin Stock</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros y búsqueda -->
+  <div class="filters-section">
+    <div class="search-box">
+      <div class="input-group">
+        <input
+          type="text"
+          class="form-control"
+          placeholder="Buscar productos..."
+          [(ngModel)]="searchTerm"
+          (input)="onSearch()">
+        <span class="input-group-text">
+          <i class="fas fa-search"></i>
+        </span>
+      </div>
+    </div>
+
+    <div class="filter-group">
+      <select
+        class="form-select"
+        [(ngModel)]="selectedUnit"
+        (change)="onFilterChange()">
+        <option value="">Todas las unidades</option>
+        <option *ngFor="let unit of availableUnits" [value]="unit">{{ unit }}</option>
+      </select>
+
+      <select
+        class="form-select"
+        [(ngModel)]="selectedStatus"
+        (change)="onFilterChange()">
+        <option value="all">Todos los estados</option>
+        <option value="available">Disponibles</option>
+        <option value="low_stock">Stock bajo</option>
+        <option value="out_of_stock">Sin stock</option>
+      </select>
+
+      <div class="price-filters">
+        <input
+          type="number"
+          class="form-control"
+          placeholder="Precio mín."
+          [(ngModel)]="minPrice"
+          (input)="onFilterChange()">
+        <input
+          type="number"
+          class="form-control"
+          placeholder="Precio máx."
+          [(ngModel)]="maxPrice"
+          (input)="onFilterChange()">
+      </div>
+
+      <button class="btn btn-outline-secondary" (click)="clearFilters()">
+        <i class="fas fa-times"></i> Limpiar
+      </button>
+    </div>
+  </div>
+
+  <!-- Error message -->
+  <div *ngIf="error" class="alert alert-danger" role="alert">
+    <i class="fas fa-exclamation-triangle"></i> {{ error }}
+  </div>
+
+  <!-- Loading state -->
+  <div *ngIf="loading" class="loading-container">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Cargando...</span>
+    </div>
+    <p>Cargando productos...</p>
+  </div>
+
+  <!-- Grid de productos -->
+  <div class="products-grid" *ngIf="!loading">
+    <div class="product-card" *ngFor="let product of paginatedProducts">
+      <!-- Estado del producto -->
+      <div class="product-status">
+        <span [class]="'status-badge ' + getStockStatusClass(product)">
+          {{ getStockStatus(product) }}
+        </span>
+        <div class="form-check form-switch">
+          <input
+            class="form-check-input"
+            type="checkbox"
+            [checked]="product.activo"
+            (change)="toggleProductStatus(product)">
+        </div>
+      </div>
+
+      <!-- Imagen del producto -->
+      <div class="product-image">
+        <img
+          [src]="product.imagenUrl || 'https://via.placeholder.com/150x150/e0e0e0/666666?text=Sin+Imagen'"
+          [alt]="product.nombre"
+          class="img-fluid"
+          (error)="onImageError($event)">
+      </div>
+
+      <!-- Información del producto -->
+      <div class="product-info">
+        <h5 class="product-name">{{ product.nombre }}</h5>
+        <p class="product-description" *ngIf="product.descripcion">{{ product.descripcion }}</p>
+
+        <div class="product-details">
+          <div class="price-stock">
+            <span class="price">{{ formatPrice(product.precio) }}</span>
+            <span class="unit">/ {{ product.unidadMedida }}</span>
+          </div>
+          <div class="stock-info">
+            <span class="stock-number">{{ product.stock }}</span>
+            <span class="stock-unit">{{ product.unidadMedida }} disponibles</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones del producto -->
+      <div class="product-actions">
+        <button
+          class="btn btn-sm btn-outline-primary"
+          (click)="openModal(product)"
+          title="Editar producto">
+          <i class="fas fa-edit"></i>
+        </button>
+        <button
+          class="btn btn-sm btn-outline-info"
+          (click)="openStockModal(product)"
+          title="Gestionar stock">
+          <i class="fas fa-cubes"></i>
+        </button>
+        <button
+          class="btn btn-sm btn-outline-danger"
+          (click)="confirmDelete(product)"
+          title="Eliminar producto">
+          <i class="fas fa-trash"></i>
+        </button>
+      </div>
+
+      <!-- Alertas de stock -->
+      <div class="stock-alert" *ngIf="product.stock <= lowStockThreshold">
+        <i class="fas fa-exclamation-triangle"></i>
+        {{ product.stock === 0 ? 'Producto agotado' : 'Stock bajo' }}
+      </div>
+    </div>
+
+    <!-- Estado vacío -->
+    <div *ngIf="filteredProducts.length === 0" class="empty-state">
+      <i class="fas fa-box-open fa-3x text-muted"></i>
+      <h4>No hay productos</h4>
+      <p class="text-muted">
+        {{ searchTerm || selectedUnit || selectedStatus !== 'all' ? 'No se encontraron productos con los filtros aplicados' : 'Aún no tienes productos registrados' }}
+      </p>
+      <button *ngIf="!searchTerm && !selectedUnit && selectedStatus === 'all'" class="btn btn-primary" (click)="openModal()">
+        Agregar primer producto
+      </button>
+    </div>
+  </div>
+
+  <!-- Paginación -->
+  <nav *ngIf="totalPages > 1" aria-label="Paginación de productos">
+    <ul class="pagination justify-content-center">
+      <li class="page-item" [class.disabled]="currentPage === 1">
+        <button class="page-link" (click)="changePage(currentPage - 1)">Anterior</button>
+      </li>
+      <li *ngFor="let page of [].constructor(totalPages); let i = index"
+          class="page-item"
+          [class.active]="currentPage === i + 1">
+        <button class="page-link" (click)="changePage(i + 1)">{{ i + 1 }}</button>
+      </li>
+      <li class="page-item" [class.disabled]="currentPage === totalPages">
+        <button class="page-link" (click)="changePage(currentPage + 1)">Siguiente</button>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<!-- Modal para crear/editar producto -->
+<div class="modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          {{ editingProduct ? 'Editar Producto' : 'Nuevo Producto' }}
+        </h5>
+        <button type="button" class="btn-close" (click)="closeModal()"></button>
+      </div>
+      <form [formGroup]="productForm" (ngSubmit)="saveProduct()">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-8">
+              <div class="mb-3">
+                <label class="form-label" for="nombre">Nombre del Producto *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="nombre"
+                  formControlName="nombre"
+                  [class.is-invalid]="productForm.get('nombre')?.invalid && productForm.get('nombre')?.touched">
+                <div class="invalid-feedback" *ngIf="productForm.get('nombre')?.invalid && productForm.get('nombre')?.touched">
+                  El nombre es requerido (mínimo 2 caracteres)
+                </div>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="mb-3">
+                <label class="form-label" for="unidadMedida">Unidad de Medida *</label>
+                <select
+                  class="form-select"
+                  id="unidadMedida"
+                  formControlName="unidadMedida"
+                  [class.is-invalid]="productForm.get('unidadMedida')?.invalid && productForm.get('unidadMedida')?.touched">
+                  <option value="">Seleccionar</option>
+                  <option value="kg">Kilogramos (kg)</option>
+                  <option value="g">Gramos (g)</option>
+                  <option value="l">Litros (l)</option>
+                  <option value="ml">Mililitros (ml)</option>
+                  <option value="unidad">Unidad</option>
+                  <option value="docena">Docena</option>
+                  <option value="caja">Caja</option>
+                  <option value="saco">Saco</option>
+                </select>
+                <div class="invalid-feedback" *ngIf="productForm.get('unidadMedida')?.invalid && productForm.get('unidadMedida')?.touched">
+                  Selecciona una unidad de medida
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="descripcion">Descripción</label>
+            <textarea
+              class="form-control"
+              id="descripcion"
+              formControlName="descripcion"
+              rows="3"
+              placeholder="Descripción detallada del producto"></textarea>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label" for="precio">Precio *</label>
+                <div class="input-group">
+                  <span class="input-group-text">S/</span>
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="precio"
+                    formControlName="precio"
+                    step="0.01"
+                    min="0"
+                    [class.is-invalid]="productForm.get('precio')?.invalid && productForm.get('precio')?.touched">
+                </div>
+                <div class="invalid-feedback" *ngIf="productForm.get('precio')?.invalid && productForm.get('precio')?.touched">
+                  El precio debe ser mayor a 0
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label class="form-label" for="stock">Stock Inicial *</label>
+                <input
+                  type="number"
+                  class="form-control"
+                  id="stock"
+                  formControlName="stock"
+                  min="0"
+                  [class.is-invalid]="productForm.get('stock')?.invalid && productForm.get('stock')?.touched">
+                <div class="invalid-feedback" *ngIf="productForm.get('stock')?.invalid && productForm.get('stock')?.touched">
+                  El stock debe ser mayor o igual a 0
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="imagenUrl">URL de Imagen</label>
+            <input
+              type="url"
+              class="form-control"
+              id="imagenUrl"
+              formControlName="imagenUrl"
+              placeholder="https://ejemplo.com/imagen.jpg">
+            <div class="form-text">Opcional: URL de una imagen del producto</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="productForm.invalid">
+            {{ editingProduct ? 'Actualizar' : 'Crear' }} Producto
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para gestionar stock -->
+<div class="modal fade" [class.show]="showStockModal" [style.display]="showStockModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Gestionar Stock: {{ productToUpdateStock?.nombre }}</h5>
+        <button type="button" class="btn-close" (click)="closeStockModal()"></button>
+      </div>
+      <form [formGroup]="stockForm" (ngSubmit)="updateStock()">
+        <div class="modal-body">
+          <div class="current-stock mb-3">
+            <h6>Stock Actual: <span class="text-primary">{{ productToUpdateStock?.stock }} {{ productToUpdateStock?.unidadMedida }}</span></h6>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Acción</label>
+            <select class="form-select" formControlName="stockAction">
+              <option value="set">Establecer cantidad exacta</option>
+              <option value="increase">Aumentar stock (reposición)</option>
+              <option value="reduce">Reducir stock (venta/pérdida)</option>
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="quantity">Cantidad</label>
+            <div class="input-group">
+              <input
+                type="number"
+                class="form-control"
+                id="quantity"
+                formControlName="quantity"
+                min="0">
+              <span class="input-group-text">{{ productToUpdateStock?.unidadMedida }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeStockModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="stockForm.invalid">
+            Actualizar Stock
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de confirmación para eliminar -->
+<div class="modal fade" [class.show]="showDeleteModal" [style.display]="showDeleteModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar Eliminación</h5>
+        <button type="button" class="btn-close" (click)="showDeleteModal = false"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar el producto <strong>{{ productToDelete?.nombre }}</strong>?</p>
+        <p class="text-muted">Esta acción no se puede deshacer.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="showDeleteModal = false">Cancelar</button>
+        <button type="button" class="btn btn-danger" (click)="deleteProduct()">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay para modales -->
+<div class="modal-backdrop fade" [class.show]="showModal || showDeleteModal || showStockModal" *ngIf="showModal || showDeleteModal || showStockModal"></div>
