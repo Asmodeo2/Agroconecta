@@ -8,9 +8,7 @@ import {
   UpdateOrderRequest,
   UpdateOrderStatusRequest,
   OrderSearchRequest,
-  OrdersSummary,
-  OrderStatistics,
-  DailySales
+  OrdersSummary
 } from '../../shared/models/pedido.model';
 
 @Injectable({
@@ -103,9 +101,6 @@ export class PedidoService {
     return this.http.get<OrdersSummary>(`${this.apiUrl}/stats/summary`);
   }
 
-  getOrderStatistics(): Observable<OrderStatistics> {
-    return this.http.get<OrderStatistics>(`${this.apiUrl}/statistics`);
-  }
 
   // ===============================
   // MÉTODOS DE UTILIDAD LOCALES
@@ -171,6 +166,6 @@ export class PedidoService {
   }
 
   obtenerEstadisticasPedidos(): Observable<any> {
-    return this.getOrderStatistics();
+    return this.getOrdersSummary();
   }
 }

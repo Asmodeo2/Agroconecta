@@ -4,6 +4,35 @@
   margin: 0 auto;
 }
 
+// Estilos para el modal de visualización
+.info-item {
+  margin-bottom: 0.75rem;
+
+  strong {
+    color: #2c3e50;
+    margin-right: 0.5rem;
+  }
+}
+
+.order-details {
+  margin-top: 1.5rem;
+
+  h6 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #e9ecef;
+    padding-bottom: 0.5rem;
+  }
+}
+
+.total-display {
+  text-align: right;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;

@@ -22,9 +22,11 @@ export class OrdersComponent implements OnInit {
   clients: Client[] = [];
   availableProducts: Product[] = [];
   showModal = false;
+  showViewModal = false;
   showDeleteModal = false;
   showStatusModal = false;
   editingOrder: Order | null = null;
+  viewingOrder: Order | null = null;
   orderToDelete: Order | null = null;
   orderToUpdateStatus: Order | null = null;
   orderForm: FormGroup;
@@ -70,7 +72,6 @@ export class OrdersComponent implements OnInit {
     this.loadOrders();
     this.loadClients();
     this.loadAvailableProducts();
-    this.loadSummary();
   }
 
   get detallesFormArray() {
@@ -87,6 +88,8 @@ export class OrdersComponent implements OnInit {
         this.extractAvailableZones();
         this.applyFilters();
         this.loading = false;
+        // Cargar resumen después de tener los pedidos
+        this.loadSummary();
       },
       error: (error) => {
         this.error = 'Error al cargar pedidos';
@@ -112,7 +115,9 @@ export class OrdersComponent implements OnInit {
 
   loadSummary() {
     this.pedidoService.getOrdersSummary().subscribe({
-      next: (summary) => this.summary = summary,
+      next: (summary) => {
+        this.summary = summary;
+      },
       error: (error) => console.error('Error loading summary:', error)
     });
   }
@@ -202,6 +207,16 @@ export class OrdersComponent implements OnInit {
     this.editingOrder = null;
     this.orderForm.reset();
     this.detallesFormArray.clear();
+  }
+
+  openViewModal(order: Order) {
+    this.viewingOrder = order;
+    this.showViewModal = true;
+  }
+
+  closeViewModal() {
+    this.showViewModal = false;
+    this.viewingOrder = null;
   }
 
   addDetailFormGroup(productoId?: number, cantidad?: number, precioUnitario?: number) {

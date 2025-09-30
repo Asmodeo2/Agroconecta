@@ -7,7 +7,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { PedidoService } from '../../../core/services/pedido.service';
-import { Order } from '../../../shared/models/pedido.model';
+import { Order, OrdersSummary } from '../../../shared/models/pedido.model';
 import { ProductService } from '../../../core/services/producto.service';
 import { UserService } from '../../../core/services/user.service';
 import { ClientService } from '../../../core/services/client.service';
@@ -319,16 +319,16 @@ export class AdminDashboardComponent implements OnInit {
     this.loading = true;
 
     // Cargar estadísticas de pedidos
-    this.pedidoService.getOrderStatistics().subscribe({
-      next: (statistics) => {
-        this.stats.totalPedidos = statistics.totalPedidos || 0;
-        this.stats.pedidosPendientes = statistics.pedidosPendientes || 0;
-        this.stats.pedidosConfirmados = statistics.pedidosConfirmados || 0;
-        this.stats.pedidosEnCamino = statistics.pedidosEnCamino || 0;
-        this.stats.pedidosEntregados = statistics.pedidosEntregados || 0;
-        this.stats.ventasDelMes = statistics.montoTotalVentas || 0;
+    this.pedidoService.getOrdersSummary().subscribe({
+      next: (summary: OrdersSummary) => {
+        this.stats.totalPedidos = summary.totalOrders || 0;
+        this.stats.pedidosPendientes = summary.pendingOrders || 0;
+        this.stats.pedidosConfirmados = summary.processingOrders || 0;
+        this.stats.pedidosEnCamino = summary.processingOrders || 0;
+        this.stats.pedidosEntregados = summary.deliveredOrders || 0;
+        this.stats.ventasDelMes = summary.totalRevenue || 0;
       },
-      error: (error) => console.error('Error al cargar estadísticas de pedidos:', error)
+      error: (error: any) => console.error('Error al cargar estadísticas de pedidos:', error)
     });
 
     // Cargar pedidos recientes

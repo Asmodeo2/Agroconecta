@@ -6,6 +6,7 @@ export interface Order {
   zonaEntrega: string;
   fechaPedido: Date;
   fechaEntregaProgramada?: Date;
+  fechaEntregaReal?: Date;
   montoTotal: number;
   observaciones?: string;
   detalles: OrderDetail[];
@@ -57,12 +58,13 @@ export interface OrdersSummary {
   pendingOrders: number;
   completedOrders: number;
   cancelledOrders: number;
-  processingOrders: number;
-  deliveredOrders: number;
   totalRevenue: number;
   averageOrderValue: number;
-  successRate: number;
-  cancellationRate: number;
+  // Campos calculados en el frontend
+  processingOrders?: number;
+  deliveredOrders?: number;
+  successRate?: number;
+  cancellationRate?: number;
 }
 
 export interface OrderStatistics {
